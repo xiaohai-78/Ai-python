@@ -16,6 +16,11 @@ total_expense = 0.0
 total_income = 0.0
 total_transfer = 0.0
 
+# 创建字典来存储按counterparty分类的金额总和
+expense_by_counterparty = {}
+income_by_counterparty = {}
+transfer_by_counterparty = {}
+
 for _, row in data.iterrows():
     record = {
         'tradeId': row.iloc[0],          # 第一列 交易号
@@ -28,17 +33,54 @@ for _, row in data.iterrows():
     }
     data_list.append(record)
 
-# 根据资金状态累加总金额
+    # 根据资金状态累加总金额并按counterparty分类
     if record['financialStatus'] == '已支出':
         total_expense += record['amount']
+        if record['counterparty'] in expense_by_counterparty:
+            expense_by_counterparty[record['counterparty']] += record['amount']
+        else:
+            expense_by_counterparty[record['counterparty']] = record['amount']
     elif record['financialStatus'] == '已收入':
         total_income += record['amount']
+        if record['counterparty'] in income_by_counterparty:
+            income_by_counterparty[record['counterparty']] += record['amount']
+        else:
+            income_by_counterparty[record['counterparty']] = record['amount']
     elif record['financialStatus'] == '资金转移':
         total_transfer += record['amount']
+        if record['counterparty'] in transfer_by_counterparty:
+            transfer_by_counterparty[record['counterparty']] += record['amount']
+        else:
+            transfer_by_counterparty[record['counterparty']] = record['amount']
 
-json_data = json.dumps(data_list, ensure_ascii=False, indent=4)
+    # 获取总金额最高的3个分类
+    top_expenses = sorted(expense_by_counterparty.items(), key=lambda x: x[1], reverse=True)[:3]
+    top_incomes = sorted(income_by_counterparty.items(), key=lambda x: x[1], reverse=True)[:3]
+    top_transfers = sorted(transfer_by_counterparty.items(), key=lambda x: x[1], reverse=True)[:3]
 
-print(json_data)
+# 打印结果
+print(json.dumps(data_list, ensure_ascii=False, indent=4))
+
+print("===================================")
+
 print(f"已支出: {total_expense:.2f}")
 print(f"已收入: {total_income:.2f}")
 print(f"资金转移: {total_transfer:.2f}")
+
+print("===================================")
+
+print("已支出中总金额最高的3个分类:")
+for counterparty, amount in top_expenses:
+    print(f"{counterparty}: {amount:.2f}")
+
+print("===================================")
+
+print("已收入中总金额最高的3个分类:")
+for counterparty, amount in top_incomes:
+    print(f"{counterparty}: {amount:.2f}")
+
+print("===================================")
+
+print("资金转移中总金额最高的3个分类:")
+for counterparty, amount in top_transfers:
+    print(f"{counterparty}: {amount:.2f}")
